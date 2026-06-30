@@ -1,0 +1,16 @@
+{
+  "name": "dropboard",
+  "version": "1.0.0",
+  "description": "LAN 可存取的拖曳上傳檔案管理系統 - 自動分類、搜尋",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^10.0.0"
+  }
+}

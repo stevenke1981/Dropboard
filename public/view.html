@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>內容檢視 - Dropboard</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* ─── View page 專用樣式 ─── */
+    body {
+      background: #000;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .view-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .view-header .back-btn {
+      color: var(--text2);
+      text-decoration: none;
+      font-size: 1.2rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .view-header .back-btn:hover {
+      color: var(--text);
+      background: var(--surface2);
+    }
+    .view-header .file-info {
+      flex: 1;
+      overflow: hidden;
+    }
+    .view-header .file-name {
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .view-header .file-meta {
+      font-size: 0.75rem;
+      color: var(--text2);
+    }
+    .view-header .download-btn {
+      font-size: 0.85rem;
+    }
+
+    .view-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: auto;
+    }
+
+    /* Video / Audio */
+    .view-content video,
+    .view-content audio {
+      max-width: 100%;
+      max-height: calc(100vh - 100px);
+      border-radius: 8px;
+      outline: none;
+    }
+    .view-content audio {
+      width: 80%;
+      max-width: 600px;
+    }
+
+    /* Image */
+    .view-content img {
+      max-width: 100%;
+      max-height: calc(100vh - 100px);
+      object-fit: contain;
+      border-radius: 4px;
+    }
+
+    /* Text */
+    .view-content pre {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 32px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text);
+      overflow: auto;
+      max-height: calc(100vh - 120px);
+    }
+
+    /* PDF */
+    .view-content iframe {
+      width: 100%;
+      height: calc(100vh - 100px);
+      border: none;
+      border-radius: 4px;
+    }
+
+    /* Loading & Error */
+    .view-loading, .view-error {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text2);
+    }
+    .view-error {
+      color: var(--red);
+    }
+    .view-error .big-icon { font-size: 4rem; margin-bottom: 16px; }
+
+    @media (max-width: 600px) {
+      .view-content { padding: 8px; }
+      .view-content pre { padding: 16px; font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="view-header" id="viewHeader">
+    <a class="back-btn" href="/" title="回到 Dropboard">←</a>
+    <div class="file-info">
+      <div class="file-name" id="fileName">載入中...</div>
+      <div class="file-meta" id="fileMeta"></div>
+    </div>
+    <a class="btn btn-sm download-btn" id="downloadBtn" target="_blank" hidden>⬇ 下載</a>
+  </div>
+  <div class="view-content" id="viewContent">
+    <div class="view-loading" id="viewLoading">載入中...</div>
+  </div>
+
+  <script>
+    // ─── 工具函式 ────────────────────────────────────
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatSize(bytes) {
+      if (!bytes || bytes <= 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function formatDate(d) {
+      if (!d) return '-';
+      return d.slice(0, 10);
+    }
+
+    // ─── 可檢視文字類型 ──────────────────────────────
+    function isViewableText(item) {
+      if (item.mime_type && item.mime_type.startsWith('text/')) return true;
+      return /\.(txt|md|markdown|csv|tsv|json|xml|yaml|yml|toml|js|jsx|ts|tsx|mjs|cjs|css|scss|less|html?|sh|bash|zsh|bat|cmd|ps1|py|rb|php|java|c|cpp|h|log|ini|cfg|conf|env|sql|svg|tex|rst)$/i.test(item.original_name);
+    }
+
+    // ─── 主流程 ───────────────────────────────────────
+    (async function() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (!id) {
+        document.getElementById('viewContent').innerHTML =
+          '<div class="view-error"><div class="big-icon">❓</div><p>缺少檔案 ID</p></div>';
+        return;
+      }
+
+      try {
+        const resp = await fetch(`/api/items/${id}`);
+        if (!resp.ok) throw new Error('找不到該項目');
+        const item = await resp.json();
+        item.url = `/uploads/${item.file_path}`;
+
+        // 更新標題與資訊
+        document.title = `${item.original_name} - Dropboard`;
+        document.getElementById('fileName').textContent = item.original_name;
+        document.getElementById('fileMeta').textContent =
+          `${formatSize(item.file_size)} · ${item.mime_type} · ${formatDate(item.uploaded_at)}`;
+        document.getElementById('downloadBtn').href = item.url;
+        document.getElementById('downloadBtn').hidden = false;
+
+        const content = document.getElementById('viewContent');
+        content.innerHTML = ''; // 清除 loading
+
+        const mime = item.mime_type || '';
+        const ext = item.original_name.toLowerCase().match(/\.(\w+)$/);
+        const extName = ext ? ext[1] : '';
+
+        // ── 影片 ──
+        if (mime.startsWith('video/') || ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'wmv'].includes(extName)) {
+          const video = document.createElement('video');
+          video.controls = true;
+          video.autoplay = false;
+          video.preload = 'metadata';
+          const source = document.createElement('source');
+          source.src = item.url;
+          source.type = mime.startsWith('video/') ? mime : `video/${extName}`;
+          video.appendChild(source);
+          video.innerHTML += '您的瀏覽器不支援影片播放。';
+          content.appendChild(video);
+        }
+        // ── 音訊 ──
+        else if (mime.startsWith('audio/') || ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a'].includes(extName)) {
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.autoplay = false;
+          audio.preload = 'metadata';
+          const source = document.createElement('source');
+          source.src = item.url;
+          source.type = mime.startsWith('audio/') ? mime : `audio/${extName}`;
+          audio.appendChild(source);
+          audio.innerHTML += '您的瀏覽器不支援音訊播放。';
+          content.appendChild(audio);
+        }
+        // ── 圖片 ──
+        else if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extName)) {
+          const img = document.createElement('img');
+          img.src = item.url;
+          img.alt = item.original_name;
+          img.loading = 'lazy';
+          content.appendChild(img);
+        }
+        // ── PDF ──
+        else if (mime === 'application/pdf' || extName === 'pdf') {
+          const iframe = document.createElement('iframe');
+          iframe.src = item.url + '#view=FitH';
+          content.appendChild(iframe);
+        }
+        // ── 純文字 ──
+        else if (isViewableText(item)) {
+          const pre = document.createElement('pre');
+          pre.textContent = '載入中...';
+          content.appendChild(pre);
+          try {
+            const textResp = await fetch(`/api/items/${id}/content`);
+            if (textResp.ok) {
+              pre.textContent = await textResp.text();
+            } else {
+              pre.textContent = `❌ 無法載入內容: ${textResp.statusText}`;
+            }
+          } catch (e) {
+            pre.textContent = `❌ 載入失敗: ${e.message}`;
+          }
+        }
+        // ── 其他（不支援直接檢視） ──
+        else {
+          content.innerHTML = `
+            <div class="view-error">
+              <div class="big-icon">📄</div>
+              <p>此檔案類型不支援直接檢視</p>
+              <p style="font-size:0.9rem;color:var(--text2);margin-top:8px">
+                <a class="btn" href="${escapeHtml(item.url)}" target="_blank">⬇ 下載檔案</a>
+              </p>
+            </div>
+          `;
+        }
+
+      } catch (err) {
+        document.getElementById('viewContent').innerHTML =
+          `<div class="view-error"><div class="big-icon">❌</div><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

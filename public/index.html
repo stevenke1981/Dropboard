@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dropboard - 檔案管理</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- ═══ 頂部導航 ═══ -->
+  <header class="header">
+    <div class="header-inner">
+      <h1 class="logo">Dropboard</h1>
+      <span class="subtitle">拖曳上傳 · 自動分類 · 隨手查詢</span>
+      <div class="header-actions">
+        <button class="btn btn-sm" id="btnRefresh" title="重新整理">⟳</button>
+        <button class="btn btn-sm" id="btnStats" title="統計">📊</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ 拖曳上傳區域 ═══ -->
+  <section class="dropzone" id="dropzone">
+    <div class="dropzone-inner" id="dropzoneInner">
+      <div class="dropzone-icon">📁</div>
+      <div class="dropzone-text">
+        <strong>將檔案拖曳到這裡</strong>
+        <span>或點擊此區域選擇檔案</span>
+      </div>
+      <div class="dropzone-hint">支援圖片、文件、影片、音訊等</div>
+      <input type="file" id="fileInput" multiple hidden accept="*/*">
+    </div>
+    <!-- 上傳進度 -->
+    <div class="upload-progress" id="uploadProgress" hidden>
+      <div class="upload-progress-bar" id="uploadProgressBar"></div>
+      <div class="upload-progress-text" id="uploadProgressText">上傳中...</div>
+    </div>
+  </section>
+
+  <!-- ═══ 上傳完成提示 ═══ -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ═══ 主內容 ═══ -->
+  <main class="main">
+    <!-- 工具列 -->
+    <div class="toolbar" id="toolbar">
+      <!-- 分類標籤 -->
+      <div class="filter-tabs" id="filterTabs">
+        <button class="tab active" data-category="all">📋 全部</button>
+        <button class="tab" data-category="images">📷 圖片</button>
+        <button class="tab" data-category="screenshots">🖥️ 截圖</button>
+        <button class="tab" data-category="documents">📄 文件</button>
+        <button class="tab" data-category="videos">🎬 影片</button>
+        <button class="tab" data-category="audio">🎵 音訊</button>
+        <button class="tab" data-category="archives">📦 壓縮檔</button>
+        <button class="tab" data-category="other">📁 其他</button>
+      </div>
+
+      <!-- 搜尋與篩選 -->
+      <div class="toolbar-row">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="搜尋檔案名稱、描述或標籤..." />
+          <button class="btn btn-search" id="btnSearch">🔍</button>
+        </div>
+        <div class="filter-group">
+          <input type="date" id="dateFrom" title="日期從" />
+          <span class="filter-sep">~</span>
+          <input type="date" id="dateTo" title="日期到" />
+          <select id="sortBy" class="filter-select">
+            <option value="uploaded_at">上傳時間</option>
+            <option value="file_date">檔案日期</option>
+            <option value="original_name">檔名</option>
+            <option value="file_size">大小</option>
+          </select>
+          <select id="sortOrder" class="filter-select">
+            <option value="DESC">⬇ 最新</option>
+            <option value="ASC">⬆ 最舊</option>
+          </select>
+          <button class="btn btn-filter" id="btnFilter">篩選</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 項目計數 -->
+    <div class="result-info" id="resultInfo">
+      <span id="resultCount">載入中...</span>
+    </div>
+
+    <!-- 檔案網格 -->
+    <div class="grid" id="grid">
+      <div class="loading">載入中...</div>
+    </div>
+
+    <!-- 分頁 -->
+    <div class="pagination" id="pagination" hidden>
+      <button class="btn btn-page" id="prevPage">◀ 上一頁</button>
+      <span class="page-info" id="pageInfo">第 1 / 1 頁</span>
+      <button class="btn btn-page" id="nextPage">下一頁 ▶</button>
+    </div>
+  </main>
+
+  <!-- ═══ 詳情 Modal ═══ -->
+  <div class="modal-overlay" id="modal" hidden onclick="if(event.target===this)this.hidden=true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">詳細資訊</h2>
+        <button class="btn btn-close" id="btnCloseModal" onclick="document.getElementById('modal').hidden=true">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- 由 JS 動態填入 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 統計 Modal ═══ -->
+  <div class="modal-overlay" id="statsModal" hidden onclick="if(event.target===this)this.hidden=true">
+    <div class="modal modal-stats">
+      <div class="modal-header">
+        <h2>📊 統計</h2>
+        <button class="btn btn-close" id="btnCloseStats" onclick="document.getElementById('statsModal').hidden=true">✕</button>
+      </div>
+      <div class="modal-body" id="statsBody"></div>
+    </div>
+  </div>
+
+  <script src="/app.js?v=20260701"></script>
+</body>
+</html>
