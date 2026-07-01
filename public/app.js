@@ -291,6 +291,7 @@ async function openDetail(id) {
         <a class="btn" href="${item.url}" target="_blank">${isImage ? '🔍 檢視原始' : '⬇ 下載'}</a>
         <a class="btn" href="${viewPageUrl}" target="_blank">🔗 在新分頁開啟</a>
         ${canViewContent && (isText || isPdfFile) ? '<button class="btn" id="btnViewContent">📄 檢視內容</button>' : ''}
+        ${isImage ? '<button class="btn" id="btnRemoveC2pa">🛡️ 移除 C2PA</button>' : ''}
         <button class="btn btn-danger" id="btnDeleteItem">🗑 刪除</button>
       </div>
 
@@ -322,6 +323,12 @@ async function openDetail(id) {
     // 事件綁定
     document.getElementById('btnDeleteItem').addEventListener('click', () => deleteItem(id));
     document.getElementById('btnSaveEdit').addEventListener('click', () => saveEdit(id));
+    
+    // 移除 C2PA 按鈕
+    const c2paBtn = document.getElementById('btnRemoveC2pa');
+    if (c2paBtn) {
+      c2paBtn.addEventListener('click', () => removeC2pa(id));
+    }
 
     // 檢視內容按鈕（僅文字/PDF 需要按了才載入）
     const viewBtn = document.getElementById('btnViewContent');
@@ -353,6 +360,23 @@ async function openDetail(id) {
 
   } catch (err) {
     showToast(`載入失敗：${err.message}`, 'error');
+  }
+}
+
+// ─── 移除 C2PA ───────────────────────────────────────
+async function removeC2pa(id) {
+  const btn = document.getElementById('btnRemoveC2pa');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 處理中...'; }
+
+  try {
+    const result = await api(`/api/items/${id}/remove-c2pa`, { method: 'POST' });
+    const newItem = result.item;
+    showToast(`✅ C2PA 已移除 → ${newItem.original_name}`, 'success', 5000);
+    modal.hidden = true;
+    loadItems();
+  } catch (err) {
+    showToast(`❌ C2PA 移除失敗：${err.message}`, 'error', 5000);
+    if (btn) { btn.disabled = false; btn.textContent = '🛡️ 移除 C2PA'; }
   }
 }
 

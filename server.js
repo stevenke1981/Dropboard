@@ -302,6 +302,79 @@ app.get('/api/stats', (req, res) => {
 });
 
 /**
+ * POST /api/items/:id/remove-c2pa - 移除圖檔中的 C2PA 元資料
+ * 產生新檔案：原檔名_no_c2pa.副檔名
+ */
+app.post('/api/items/:id/remove-c2pa', (req, res) => {
+  const id = Number(req.params.id);
+  const item = db.getItem(id);
+  if (!item) {
+    return res.status(404).json({ error: '找不到該項目' });
+  }
+
+  const ext = path.extname(item.original_name).toLowerCase();
+  const allowedExts = ['.jpg', '.jpeg', '.png'];
+  if (!allowedExts.includes(ext)) {
+    return res.status(400).json({ error: '僅支援 JPEG 和 PNG 格式移除 C2PA' });
+  }
+
+  if (!item.mime_type.startsWith('image/')) {
+    return res.status(400).json({ error: '僅支援圖片格式' });
+  }
+
+  const { stripC2pa } = require('./strip-c2pa');
+  const inputPath = path.join(UPLOADS_DIR, item.file_path);
+
+  if (!fs.existsSync(inputPath)) {
+    return res.status(404).json({ error: '實體檔案不存在' });
+  }
+
+  // 產生新檔名：原主檔名_no_c2pa.副檔名
+  const baseName = path.basename(item.original_name, ext);
+  const newFileName = baseName + '_no_c2pa' + ext;
+  const newStoredName = crypto.randomUUID() + ext;
+  const cat = categorize(newFileName, item.mime_type);
+  const outputDir = path.join(UPLOADS_DIR, cat);
+  fs.mkdirSync(outputDir, { recursive: true });
+  const outputPath = path.join(outputDir, newStoredName);
+
+  const success = stripC2pa(inputPath, outputPath);
+  if (!success) {
+    return res.status(500).json({ error: 'C2PA 移除失敗，檔案可能已損壞' });
+  }
+
+  // 取得檔案尺寸
+  const stats = fs.statSync(outputPath);
+  let dimensions = null;
+  try {
+    dimensions = getImageDimensions(outputPath, item.mime_type);
+  } catch (e) { /* 忽略 */ }
+
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  const newItem = {
+    original_name: newFileName,
+    stored_name: newStoredName,
+    file_path: path.join(cat, newStoredName),
+    mime_type: item.mime_type,
+    file_size: stats.size,
+    category: cat,
+    width: dimensions ? dimensions.width : null,
+    height: dimensions ? dimensions.height : null,
+    description: item.description || '',
+    tags: item.tags || '',
+    uploaded_at: now,
+    file_date: item.file_date || now.slice(0, 10),
+  };
+
+  const newId = db.insertItem(newItem);
+  newItem.id = newId;
+  newItem.url = `/uploads/${newItem.file_path}`;
+
+  res.json({ success: true, item: newItem });
+});
+
+/**
  * GET /api/categories - 分類列表
  */
 app.get('/api/categories', (req, res) => {
