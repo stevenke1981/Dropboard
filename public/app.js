@@ -289,6 +289,7 @@ async function openDetail(id) {
 
       <div class="detail-actions">
         <a class="btn" href="${item.url}" target="_blank">${isImage ? '🔍 檢視原始' : '⬇ 下載'}</a>
+        <a class="btn" href="${item.url}" download="${safeName}">⬇ 下載</a>
         <a class="btn" href="${viewPageUrl}" target="_blank">🔗 在新分頁開啟</a>
         ${canViewContent && (isText || isPdfFile) ? '<button class="btn" id="btnViewContent">📄 檢視內容</button>' : ''}
         ${isImage ? '<button class="btn" id="btnRemoveC2pa">🛡️ 移除 C2PA</button>' : ''}
