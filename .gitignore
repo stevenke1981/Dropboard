@@ -4,5 +4,8 @@ uploads/
 *.db
 *.db-shm
 *.db-wal
+ocr/png/
+server.log
+古籍/
 .DS_Store
 Thumbs.db

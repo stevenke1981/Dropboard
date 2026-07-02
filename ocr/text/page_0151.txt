@@ -1,0 +1,11 @@
+text [713, 188, 907, 815]衆臣以乾應坤故施祿及下乾為德良為居
+text [396, 188, 709, 815]初九壯于前趾往不勝為各
+慶翻曰支殲大壯大壯震為趾位在前故壯
+text [55, 188, 260, 515]象曰不勝而往各也
+text [0, 188, 55, 415][Non-Text]
+text [0, 415, 55, 515][Non-Text]
+text [0, 515, 55, 615][Non-Text]
+text [0, 615, 55, 715][Non-Text]
+text [0, 715, 55, 815][Non-Text]
+text [0, 815, 55, 915][Non-Text]
+text [0, 915, 55, 995]The image is too blurry to recognize any text content.

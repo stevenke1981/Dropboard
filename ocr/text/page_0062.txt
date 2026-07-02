@@ -1,0 +1,11 @@
+text [895, 149, 967, 945]陰暗在上陽有明德其祿故曰君子于
+text [756, 150, 835, 425]行三日不食也
+text [669, 113, 745, 432]有攸往人有言
+text [552, 149, 655, 944]九家易曰四者初應果陰在上爲主人也初欲
+text [400, 149, 517, 944]上居五則眾陰有言謂震也四五
+text [288, 149, 400, 725]雷聲故曰有攸往人有言也
+text [202, 113, 288, 593]象曰君子行義不食也
+text [108, 149, 195, 895]苟葵曰暗昧在上有明德者義不食
+text [28, 149, 110, 895]苟葵曰暗昧在上有明德者義不食
+text [0, 149, 77, 895]The image contains no text. The horizontal line is a stylistic or background element and must be ignored according to the rules.
+text [875, 149, 955, 945]陰暗在上陽有明德其祿故曰君子于

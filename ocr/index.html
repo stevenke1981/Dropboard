@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR 成果 — Dropboard</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .ocr-container { max-width: 960px; margin: 0 auto; padding: 24px; }
+    .ocr-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .ocr-header h1 { margin: 0; font-size: 1.5rem; }
+    .ocr-header .subtitle { color: #888; font-size: 0.9rem; }
+    .ocr-section { background: #1e1e1e; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .ocr-section h2 { margin: 0 0 12px 0; font-size: 1.1rem; color: #e0e0e0; }
+    .ocr-file-list { list-style: none; padding: 0; margin: 0; }
+    .ocr-file-list li { padding: 8px 12px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 12px; }
+    .ocr-file-list li:last-child { border-bottom: none; }
+    .ocr-file-list a { color: #4a9eff; text-decoration: none; }
+    .ocr-file-list a:hover { text-decoration: underline; }
+    .ocr-file-list .file-size { color: #666; font-size: 0.85rem; margin-left: auto; }
+    .ocr-file-list .file-desc { color: #999; font-size: 0.85rem; }
+    .ocr-badge { background: #2a6e3b; color: #fff; font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; }
+    .ocr-badge.raw { background: #6e4a2a; }
+    .ocr-pages-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 12px; }
+    .ocr-pages-grid a { color: #4a9eff; text-decoration: none; font-size: 0.85rem; text-align: center; padding: 6px; background: #2a2a2a; border-radius: 4px; }
+    .ocr-pages-grid a:hover { background: #333; }
+    .ocr-nav-back { display: inline-block; margin-bottom: 16px; color: #4a9eff; text-decoration: none; }
+    .ocr-nav-back:hover { text-decoration: underline; }
+    .ocr-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .ocr-stat-card { background: #2a2a2a; border-radius: 8px; padding: 16px 20px; flex: 1; min-width: 120px; text-align: center; }
+    .ocr-stat-card .num { font-size: 1.8rem; font-weight: bold; color: #4a9eff; }
+    .ocr-stat-card .label { font-size: 0.85rem; color: #888; margin-top: 4px; }
+    .ocr-preview { background: #2a2a2a; border-radius: 4px; padding: 12px; margin-top: 8px; font-family: monospace; font-size: 0.85rem; max-height: 200px; overflow-y: auto; white-space: pre-wrap; color: #ccc; line-height: 1.6; }
+    @media (prefers-color-scheme: light) {
+      .ocr-section { background: #f5f5f5; }
+      .ocr-section h2 { color: #333; }
+      .ocr-file-list li { border-color: #ddd; }
+      .ocr-file-list .file-desc { color: #666; }
+      .ocr-stat-card { background: #eee; }
+      .ocr-preview { background: #f0f0f0; color: #333; }
+      .ocr-pages-grid a { background: #eee; }
+      .ocr-pages-grid a:hover { background: #ddd; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ocr-container">
+    <div class="ocr-header">
+      <div>
+        <a href="/" class="ocr-nav-back">← 回到 Dropboard</a>
+        <h1>📖 易經 OCR 成果</h1>
+        <div class="subtitle">南宋嘉定五年鮮于申之蜀地刻本 · 周易集解（柏林國立圖書館藏）</div>
+      </div>
+    </div>
+
+    <!-- 統計 -->
+    <div class="ocr-stats">
+      <div class="ocr-stat-card">
+        <div class="num">200</div>
+        <div class="label">已處理頁數</div>
+      </div>
+      <div class="ocr-stat-card">
+        <div class="num">482K</div>
+        <div class="label">總文字數</div>
+      </div>
+      <div class="ocr-stat-card">
+        <div class="num">867</div>
+        <div class="label">PDF 總頁數</div>
+      </div>
+      <div class="ocr-stat-card">
+        <div class="num">23%</div>
+        <div class="label">完成進度</div>
+      </div>
+    </div>
+
+    <!-- 完整文字檔 -->
+    <div class="ocr-section">
+      <h2>📄 完整文字輸出</h2>
+      <ul class="ocr-file-list">
+        <li>
+          <a href="full_text_raw.txt" target="_blank">full_text_raw.txt</a>
+          <span class="file-desc">原始 OCR 輸出（含座標）</span>
+          <span class="file-size">318 KB</span>
+        </li>
+        <li>
+          <a href="full_text_clean.txt" target="_blank">full_text_clean.txt</a>
+          <span class="file-desc">清除座標後的純文字</span>
+          <span class="file-size">174 KB</span>
+        </li>
+        <li>
+          <a href="full_text_improved.txt" target="_blank">full_text_improved.txt</a>
+          <span class="file-desc">改善格式版本（含頁碼標記）</span>
+          <span class="file-size">150 KB</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 報告 -->
+    <div class="ocr-section">
+      <h2>📋 報告與日誌</h2>
+      <ul class="ocr-file-list">
+        <li>
+          <a href="ocr_report.md" target="_blank">ocr_report.md</a>
+          <span class="file-desc">第 1-100 頁 OCR 彙整報告</span>
+          <span class="file-size">3 KB</span>
+        </li>
+        <li>
+          <a href="ocr_summary.txt" target="_blank">ocr_summary.txt</a>
+          <span class="file-desc">第 101-200 頁 OCR 摘要</span>
+          <span class="file-size">36 KB</span>
+        </li>
+        <li>
+          <a href="batch_101_200.log" target="_blank">batch_101_200.log</a>
+          <span class="file-desc">第 101-200 頁批次處理日誌</span>
+          <span class="file-size">16 KB</span>
+        </li>
+        <li>
+          <a href="yi_jing_OCR_research_report.md" target="_blank">yi_jing_OCR_research_report.md</a>
+          <span class="file-desc">易經 OCR 研究報告</span>
+          <span class="file-size"></span>
+        </li>
+        <li>
+          <a href="baidu_Unlimited_OCR_analysis.md" target="_blank">baidu_Unlimited_OCR_analysis.md</a>
+          <span class="file-desc">Unlimited-OCR 模型分析</span>
+          <span class="file-size"></span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 逐頁文字 -->
+    <div class="ocr-section">
+      <h2>📃 逐頁 OCR 文字（200 頁）</h2>
+      <p style="color:#888;font-size:0.9rem;margin:0 0 12px 0">已處理第 1–200 頁，尚有 667 頁待處理。</p>
+      <div class="ocr-pages-grid" id="pageGrid"></div>
+    </div>
+
+    <!-- 預覽 -->
+    <div class="ocr-section">
+      <h2>👁️ 內容預覽（page_0055 — 最豐富頁面，15,444 字元）</h2>
+      <div class="ocr-preview" id="previewContent">載入中...</div>
+    </div>
+
+    <!-- 腳本 -->
+    <div class="ocr-section">
+      <h2>⚙️ Pipeline 與工具</h2>
+      <ul class="ocr-file-list">
+        <li>
+          <a href="scripts/ocr_pipeline.py" target="_blank">ocr_pipeline.py</a>
+          <span class="file-desc">PDF → PNG → OCR 自動化 pipeline</span>
+        </li>
+        <li>
+          <a href="scripts/ocr.sh" target="_blank">ocr.sh</a>
+          <span class="file-desc">單張圖片 OCR 腳本</span>
+        </li>
+        <li>
+          <a href="scripts/unlimited-ocr-llamacpp.sh" target="_blank">unlimited-ocr-llamacpp.sh</a>
+          <span class="file-desc">OCR 伺服器啟動/管理腳本</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="ocr-section">
+      <h2>🖼️ 掃描頁面預覽</h2>
+      <ul class="ocr-file-list">
+        <li>
+          <a href="png/page_0001.png" target="_blank">page_0001.png</a>
+          <span class="file-desc">第 1 頁掃描影像</span>
+        </li>
+        <li>
+          <a href="png/page_0055.png" target="_blank">page_0055.png</a>
+          <span class="file-desc">第 55 頁掃描影像（文字最豐富）</span>
+        </li>
+        <li>
+          <a href="png/page_0199.png" target="_blank">page_0199.png</a>
+          <span class="file-desc">第 199 頁掃描影像</span>
+        </li>
+        <li>
+          <a href="png/" target="_blank">瀏覽全部 200 張掃描頁面 →</a>
+          <span class="file-desc">png/ 目錄（共 1.1 GB）</span>
+        </li>
+      </ul>
+    </div>
+
+    <p style="text-align:center;color:#666;font-size:0.85rem;margin-top:32px">
+      <a href="/" style="color:#4a9eff;">← 回到 Dropboard 首頁</a>
+    </p>
+  </div>
+
+  <script>
+    // 產生逐頁文字連結（第 1–200 頁）
+    const pageGrid = document.getElementById('pageGrid');
+    for (let i = 1; i <= 200; i++) {
+      const num = String(i).padStart(4, '0');
+      const a = document.createElement('a');
+      a.href = `text/page_${num}.txt`;
+      a.target = '_blank';
+      a.textContent = `第 ${i} 頁`;
+      pageGrid.appendChild(a);
+    }
+
+    // 載入頁面 55 的文字作為預覽
+    fetch('text/page_0055.txt')
+      .then(r => r.text())
+      .then(text => {
+        const preview = document.getElementById('previewContent');
+        preview.textContent = text.slice(0, 3000) + (text.length > 3000 ? '\n\n...（略，共 ' + text.length + ' 字元）' : '');
+      })
+      .catch(() => {
+        document.getElementById('previewContent').textContent = '（無法載入預覽）';
+      });
+  </script>
+</body>
+</html>

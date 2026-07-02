@@ -49,6 +49,142 @@ const upload = multer({
 // ─── Middleware ───────────────────────────────────────
 app.use(express.json());
 app.use('/uploads', express.static(UPLOADS_DIR));
+app.use('/ocr', express.static(path.join(__dirname, 'ocr')));
+
+// 古籍靜態檔案 + 自動目錄列表（處理沒有 index.html 的目錄）
+const GUWEN_DIR = path.join(__dirname, '古籍');
+
+// Express 4.x 不解碼百分號編碼，因此 /古籍 掛載點無法匹配瀏覽器請求
+// 改為將 /古籍/* 重導向到 /guwen/*
+app.use((req, res, next) => {
+  if (req.url.startsWith('/%E5%8F%A4%E7%B1%8D') || req.url.startsWith('/古籍')) {
+    const newUrl = '/guwen' + req.url.slice('/古籍'.length - 1);
+    return res.redirect(301, newUrl);
+  }
+  next();
+});
+
+app.use('/guwen', express.static(GUWEN_DIR));
+
+/**
+ * 自動產生目錄列表（express.static 對目錄回傳 404，此中間件補上列表頁）
+ */
+function serveDirectoryListing(req, res, next) {
+  // 只處理 GET
+  if (req.method !== 'GET') return next();
+
+  // req.path 是掛載點後的相對路徑（e.g. /classics/...），
+  // req.originalUrl 才是完整請求路徑（e.g. /guwen/classics/...）
+  const fsPath = path.join(GUWEN_DIR, req.path);
+  const mountPrefix = req.originalUrl.slice(0, -req.path.length) || '';
+  try {
+    if (fs.existsSync(fsPath) && fs.statSync(fsPath).isDirectory()) {
+      const items = fs.readdirSync(fsPath).filter(x => !x.startsWith('.'));
+      // 子目錄優先，再依檔名排序
+      items.sort((a, b) => {
+        const aIsDir = fs.statSync(path.join(fsPath, a)).isDirectory();
+        const bIsDir = fs.statSync(path.join(fsPath, b)).isDirectory();
+        if (aIsDir && !bIsDir) return -1;
+        if (!aIsDir && bIsDir) return 1;
+        return a.localeCompare(b, 'zh');
+      });
+
+      // 完整的目錄 URL（含掛載前綴）
+      const dirUrl = req.originalUrl.replace(/\/$/, '');
+
+      // 如果目錄內只有一個 text.txt → 直接 302 導向它
+      if (items.length === 1 && items[0] === 'text.txt') {
+        return res.redirect(dirUrl + '/text.txt');
+      }
+
+      // 產生麵包屑
+      const parts = req.path.replace(/\/$/, '').split('/').filter(Boolean);
+      let breadcrumb = '<a href="' + mountPrefix + '/" style="color:#4a9eff;">🏠 Home</a>';
+      let accum = mountPrefix;
+      for (const p of parts) {
+        accum += '/' + encodeURIComponent(p);
+        const isLast = p === parts[parts.length - 1];
+        breadcrumb += ' / ' + (isLast ? '<span style="color:#aaa;">' + p + '</span>' : '<a href="' + accum + '/" style="color:#4a9eff;">' + p + '</a>');
+      }
+
+      // 計算總檔案大小
+      let totalSize = 0;
+      let fileCount = 0;
+      for (const item of items) {
+        const itemPath = path.join(fsPath, item);
+        if (!fs.statSync(itemPath).isDirectory()) {
+          totalSize += fs.statSync(itemPath).size;
+          fileCount++;
+        }
+      }
+      const dirCount = items.filter(i => fs.statSync(path.join(fsPath, i)).isDirectory()).length;
+
+      const pageTitle = parts[parts.length - 1] || '古籍';
+
+      let html = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${pageTitle} — 古籍</title>
+<style>
+  body { background:#121212; color:#e0e0e0; font-family:system-ui,sans-serif; margin:0; padding:20px 24px; }
+  .breadcrumb { margin-bottom:12px; font-size:0.9rem; word-break:break-all; }
+  h1 { font-size:1.2rem; margin:0 0 4px 0; font-weight:600; }
+  .meta { color:#888; font-size:0.8rem; margin-bottom:12px; }
+  .file-list { list-style:none; padding:0; margin:0; }
+  .file-list li { padding:5px 8px; border-radius:4px; display:flex; align-items:center; gap:6px; }
+  .file-list li:hover { background:#1e1e1e; }
+  .file-list a { color:#4a9eff; text-decoration:none; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-list a:hover { color:#7bb8ff; }
+  .file-list .extra { color:#666; font-size:0.78rem; white-space:nowrap; }
+  .file-list .read-link { color:#6a6; font-size:0.78rem; }
+  .nav-back { display:inline-block; margin-top:16px; color:#4a9eff; font-size:0.85rem; }
+</style></head>
+<body>
+  <div class="breadcrumb">` + breadcrumb + `</div>
+  <h1>` + pageTitle + `</h1>
+  <div class="meta">` + dirCount + ` directories, ` + fileCount + ` files` + (fileCount > 0 ? ` · ` + (totalSize < 1048576 ? (totalSize/1024).toFixed(0) + ' KB' : (totalSize/1048576).toFixed(1) + ' MB') : '') + `</div>
+  <ul class="file-list">`;
+
+      for (const item of items) {
+        const itemPath = path.join(fsPath, item);
+        const isDir = fs.statSync(itemPath).isDirectory();
+        const icon = isDir ? '📁' : '📄';
+        const encoded = encodeURIComponent(item);
+        const entryUrl = dirUrl + '/' + encoded + (isDir ? '/' : '');
+
+        let extra = '';
+        if (isDir) {
+          const sub = fs.readdirSync(itemPath).filter(x => !x.startsWith('.'));
+          extra = '<span class="extra">' + sub.length + ' items</span>';
+          if (sub.includes('text.txt') || fs.existsSync(path.join(itemPath, 'text.txt'))) {
+            extra += ' <a href="' + entryUrl + 'text.txt' + '" class="read-link">[read]</a>';
+          }
+        } else {
+          const st = fs.statSync(itemPath);
+          const sz = st.size < 1024 ? st.size + ' B' : st.size < 1048576 ? (st.size/1024).toFixed(0) + ' KB' : (st.size/1048576).toFixed(1) + ' MB';
+          extra = '<span class="extra">' + sz + '</span>';
+        }
+
+        html += '<li><span>' + icon + '</span><a href="' + entryUrl + '">' + item + '</a>' + extra + '</li>';
+      }
+
+      const parentParts = parts.slice(0, -1);
+      const parentUrl = parentParts.length > 0 ? mountPrefix + '/' + parentParts.join('/') + '/' : mountPrefix + '/';
+      html += `</ul>
+  <a href="` + parentUrl + `" class="nav-back">← 上層目錄</a>
+</body></html>`;
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.send(html);
+    }
+  } catch (e) {
+    // 非目錄或錯誤 → 繼續到下個中間件
+  }
+  next();
+}
+
+app.use('/guwen', serveDirectoryListing);
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── 圖片尺寸讀取（輕量，無外部依賴） ────────────────

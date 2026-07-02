@@ -1,0 +1,22 @@
+text [628, 188, 907, 952]鄭玄曰始遇也一陰承五陽一女當五男苟相遇耳非禮之正故謂之始女壯如是壯健以淫故不可娶婦人以婉婉爲其德也
+text [472, 150, 585, 360]不可與長也
+text [307, 150, 460, 567]王肅曰女不可娶以其不正不可與長也
+text [184, 174, 332, 564]天地相遇品物咸章也
+text [50, 188, 277, 952]苟爽曰謂乾成於異而含於離坤出於離與
+乾相遇南方夏位萬物章明也
+text [0, 188, 55, 434]\( \therefore m = \frac{3}{11} \)
+text [0, 436, 55, 474]\( \therefore m = \frac{3}{11} \)
+text [0, 475, 55, 513]\( \therefore m = \frac{3}{11} \)
+text [0, 514, 55, 552]\( \therefore m = \frac{3}{11} \)
+text [0, 553, 55, 591]\( \therefore m = \frac{3}{11} \)
+text [0, 592, 55, 630]\( \therefore m = \frac{3}{11} \)
+text [0, 631, 55, 670]\( \therefore m = \frac{3}{11} \)
+text [0, 671, 55, 710]\( \therefore m = \frac{3}{11} \)
+text [0, 711, 55, 750]\( \therefore m = \frac{3}{11} \)
+text [0, 751, 55, 790]\( \therefore m = \frac{3}{11} \)
+text [0, 791, 55, 830]\( \therefore m = \frac{3}{11} \)
+text [0, 831, 55, 870]\( \therefore m = \frac{3}{11} \)
+text [0, 871, 55, 910]\( \therefore m = \frac{3}{11} \)
+text [0, 911, 55, 950]\( \therefore m = \frac{3}{11} \)
+text [0, 951, 55, 991]\( \therefore m = \frac{3}{11} \)
+text [0, 992, 55, 999]\( \therefore m = \frac{3}{11} \)
