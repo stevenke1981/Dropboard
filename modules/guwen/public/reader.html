@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>閱讀 — 古籍</title>
+<style>
+  * { box-sizing:border-box; }
+  body {
+    background:#121212; color:#e0e0e0;
+    font-family: 'Noto Serif CJK SC', 'Noto Serif SC', 'Source Han Serif SC', 'STSong', serif;
+    margin:0; padding:0;
+  }
+  .header {
+    position:sticky; top:0; z-index:10;
+    background:#1a1a2e; border-bottom:1px solid #333;
+    padding:10px 20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .header .nav-back { color:#4a9eff; text-decoration:none; font-size:0.9rem; white-space:nowrap; }
+  .header .nav-back:hover { text-decoration:underline; }
+  .header .title-area { flex:1; min-width:0; }
+  .header .book-title { font-size:0.95rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .header .chapter-title { font-size:0.8rem; color:#888; }
+  .header .controls { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+
+  .lang-toggle {
+    display:inline-flex; border-radius:4px; overflow:hidden;
+    border:1px solid #4a9eff; font-size:0.8rem;
+  }
+  .lang-toggle button {
+    background:transparent; color:#4a9eff; border:none;
+    padding:4px 10px; cursor:pointer; transition:all 0.15s;
+  }
+  .lang-toggle button.active {
+    background:#4a9eff; color:#fff; font-weight:600;
+  }
+  .lang-toggle button:not(.active):hover { background:#1e2a4a; }
+
+  .scanned-link {
+    display:inline-block;
+    background:#2a2a2a; color:#4a9eff; text-decoration:none;
+    padding:4px 10px; border-radius:4px; font-size:0.78rem;
+    border:1px solid #444;
+  }
+  .scanned-link:hover { background:#333; border-color:#4a9eff; }
+
+  .content {
+    max-width:780px; margin:0 auto; padding:32px 24px 80px;
+    font-size:1.1rem; line-height:2; text-align:justify;
+    white-space:pre-wrap; word-wrap:break-word;
+  }
+  .content .loading { text-align:center; color:#888; padding:60px 0; font-size:1rem; }
+  .content .error { text-align:center; color:#f66; padding:60px 0; }
+
+  .footer-nav {
+    max-width:780px; margin:0 auto; padding:0 24px 40px;
+    display:flex; justify-content:space-between; gap:16px;
+  }
+  .footer-nav a {
+    color:#4a9eff; text-decoration:none; font-size:0.9rem;
+    padding:8px 16px; border:1px solid #333; border-radius:4px;
+  }
+  .footer-nav a:hover { background:#1e1e1e; }
+
+  @media (max-width:600px) {
+    .header { padding:8px 12px; }
+    .content { padding:20px 16px 60px; font-size:1rem; }
+    .header .title-area { flex-basis:100%; order:3; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="#" class="nav-back" id="backLink">← 返回</a>
+  <div class="title-area">
+    <div class="book-title" id="bookTitle">載入中…</div>
+    <div class="chapter-title" id="chapterTitle"></div>
+  </div>
+  <div class="controls">
+    <a href="#" class="scanned-link" id="scannedLink" target="_blank" style="display:none">📖 掃描版</a>
+    <div class="lang-toggle">
+      <button id="langTw" class="active" onclick="setLang('tw')">繁體</button>
+      <button id="langCn" onclick="setLang('cn')">簡體</button>
+    </div>
+  </div>
+</div>
+
+<div class="content" id="content">
+  <div class="loading">⏳ 載入文章…</div>
+</div>
+
+<div class="footer-nav">
+  <a href="#" id="prevLink">← 上一篇</a>
+  <a href="#" id="parentLink">📂 目錄</a>
+  <a href="#" id="nextLink">下一篇 →</a>
+</div>
+
+<script>
+// ─── 設定 ────────────────────────────────────────────────
+const DEFAULT_LANG = 'tw'; // 預設繁體
+const STORAGE_KEY = 'guwen_lang_pref';
+
+// 從 URL 讀取 path
+const urlParams = new URLSearchParams(window.location.search);
+const filePath = urlParams.get('path') || '';
+const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
+const bookPath = parentDir.substring(0, parentDir.lastIndexOf('/'));
+
+// ─── 語言偏好 ────────────────────────────────────────────
+let currentLang = localStorage.getItem(STORAGE_KEY) || DEFAULT_LANG;
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem(STORAGE_KEY, lang);
+  document.getElementById('langTw').className = lang === 'tw' ? 'active' : '';
+  document.getElementById('langCn').className = lang === 'cn' ? 'active' : '';
+  loadText();
+}
+
+// 初始化語言按鈕
+setLang(currentLang);
+
+// ─── 載入文章 ────────────────────────────────────────────
+async function loadText() {
+  const contentEl = document.getElementById('content');
+  contentEl.innerHTML = '<div class="loading">⏳ 載入文章…</div>';
+
+  try {
+    const resp = await fetch('/guwen/api/text?path=' + encodeURIComponent(filePath) + '&lang=' + currentLang);
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      contentEl.innerHTML = '<div class="error">❌ ' + (data.error || '讀取失敗') + '</div>';
+      return;
+    }
+
+    // 更新標題
+    const book = data.book || '古籍';
+    const chapter = data.chapter || '';
+    const file = data.file || '';
+    document.getElementById('bookTitle').textContent = decodeURIComponent(book);
+    document.getElementById('chapterTitle').textContent = chapter ? decodeURIComponent(chapter) : '';
+
+    // 更新返回連結
+    document.getElementById('backLink').href = '/guwen' + parentDir + '/';
+
+    // 更新目錄連結
+    document.getElementById('parentLink').href = '/guwen' + parentDir + '/';
+
+    // 顯示文字（將 \n 轉為 <br>）
+    contentEl.innerHTML = data.content
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+
+    // 掃描版連結
+    setupScannedLink(book, chapter);
+
+    // 前後篇導航（由目錄自動推測）
+    setupNav(data);
+
+    // 更新頁面標題
+    const titleParts = [chapter, book, '古籍'].filter(Boolean);
+    document.title = titleParts.join(' · ');
+
+  } catch (e) {
+    contentEl.innerHTML = '<div class="error">❌ 網路錯誤: ' + e.message + '</div>';
+  }
+}
+
+// ─── 掃描版外部連結 ────────────────────────────────────
+// 古籍書名 → ctext 已知路徑對照（常用書）
+const CTEXT_PATHS = {
+  'lun-yu': 'analects',
+  'meng-zi': 'mengzi',
+  'da-xue-zhang-ju-ji-zhu': 'liji',  // 大學是禮記的一篇
+  'zhong-yong': 'liji',              // 中庸也是禮記的一篇
+  'shi-jing': 'book-of-poetry',
+  'shang-shu': 'book-of-documents',
+  'li-ji': 'liji',
+  'zhou-yi': 'book-of-changes',
+  'chun-qiu': 'chun-qiu',
+  'zuo-zhuan': 'chun-qiu-zuo-zhuan',
+  'shi-ji': 'records-of-the-grand-historian',
+  'han-shu': 'book-of-han',
+  'hou-han-shu': 'book-of-later-han',
+  'san-guo-zhi': 'records-of-the-three-kingdoms',
+  'lao-zi': 'dao-de-jing',
+  'zhuang-zi': 'zhuangzi',
+  'sun-zi-bing-fa': 'art-of-war',
+  'mo-zi': 'mozi',
+  'han-fei-zi': 'hanfeizi',
+  'guan-zi': 'guanzi',
+  'xun-zi': 'xunzi',
+  'guo-yu': 'discourses-of-the-states',
+  'zhan-guo-ce': 'intrigues-of-the-warring-states',
+  'chu-ci': 'chu-ci',
+  'yi-li': 'yili',
+  'zhou-li': 'zhou-li',
+  'gong-yang-chuan': 'gongyang- Commentary-on-the-Spring-and-Autumn-Annals',
+  'gu-liang-chuan': 'guliang-Commentary-on-the-Spring-and-Autumn-Annals',
+  'er-ya': 'er-ya',
+  'shuo-wen-jie-zi': 'shuo-wen-jie-zi',
+  'huai-nan-zi': 'huainanzi',
+  'yan-tie-lun': 'discourses-on-salt-and-iron',
+  'lun-heng': 'lun-heng',
+  'bai-hu-tong-yi': 'bai-hu-tong',
+  'hong-lou-meng': 'a-dream-of-red-mansions',
+  'shui-hu-zhuan': 'water-margin',
+  'san-guo-yan-yi': 'three-kingdoms',
+  'xi-you-ji': 'journey-to-the-west',
+  'jin-ping-mei': 'jin-ping-mei',
+  'liao-zhai-zhi-yi': 'strange-stories-from-a-chinese-studio',
+  'ru-lin-wai-shi': 'scholars',
+};
+
+// 常用 ctext 圖書館查詢字詞
+const CTEXT_LIB_QUERIES = {
+  'shang-shu': '尚書',
+  'shi-ji': '史記',
+  'zi-zhi-tong-jian': '資治通鑑',
+  'ben-cao-gang-mu': '本草綱目',
+  'hong-lou-meng': '紅樓夢',
+  'san-guo-yan-yi': '三國演義',
+  'shui-hu-zhuan': '水滸傳',
+  'xi-you-ji': '西遊記',
+};
+
+function setupScannedLink(book, chapter) {
+  const link = document.getElementById('scannedLink');
+  if (!book) { link.style.display = 'none'; return; }
+
+  // 嘗試多個來源
+  const bookName = decodeURIComponent(book);
+  const bookPath = CTEXT_PATHS[bookName];
+
+  // 來源 1: ctext 文獻頁（有已知路徑）
+  // 來源 2: ctext 圖書館搜尋
+  // 來源 3: Internet Archive
+
+  let sources = [];
+
+  if (bookPath) {
+    sources.push({
+      name: 'CText 原文',
+      url: 'https://ctext.org/' + bookPath + '/zh',
+    });
+  }
+
+  const libQuery = CTEXT_LIB_QUERIES[bookName] || bookName;
+  sources.push({
+    name: 'CText 掃描圖書館',
+    url: 'https://ctext.org/library.pl?if=gb&remap=gb&search=' + encodeURIComponent(libQuery),
+  });
+  sources.push({
+    name: 'Internet Archive',
+    url: 'https://archive.org/search?query=' + encodeURIComponent(libQuery + ' 古籍 scan'),
+  });
+
+  // 預設顯示第一個來源
+  const src = sources[0];
+  link.href = src.url;
+  link.title = '在 ' + src.name + ' 查看掃描版';
+  link.style.display = 'inline-block';
+  link.textContent = '📖 掃描版 (' + src.name + ')';
+
+  // 點擊時輪流顯示可選來源（hover 提示）
+  let idx = 0;
+  link.addEventListener('click', function (e) {
+    // 右鍵/中鍵不干預
+    if (e.button !== 0) return;
+    // Shift+點擊 = 切換下一個來源
+    if (e.shiftKey) {
+      e.preventDefault();
+      idx = (idx + 1) % sources.length;
+      const s = sources[idx];
+      link.href = s.url;
+      link.title = '在 ' + s.name + ' 查看掃描版';
+      link.textContent = '📖 掃描版 (' + s.name + ')';
+    }
+  });
+}
+
+// ─── 前後篇導航 ────────────────────────────────────────
+async function setupNav(data) {
+  // 嘗試從父目錄取得檔案列表來建立前後篇
+  try {
+    // 使用 API 取得目錄內容（或直接從目前檔案路徑推算）
+    const resp = await fetch('/guwen/api/text?path=' + encodeURIComponent(parentDir + '/') + '&lang=none');
+    // Note: 這裡會失敗因為 parentDir 是目錄，沒有 text.txt
+    // 改用靜態方式：先不啟用前後篇
+  } catch(e) {}
+
+  // 簡單方案：從 URL 路徑推算相鄰檔案
+  // 先停用前後篇，保留返回目錄功能
+  document.getElementById('prevLink').style.display = 'none';
+  document.getElementById('nextLink').style.display = 'none';
+}
+
+// ─── 啟動 ────────────────────────────────────────────────
+if (filePath) {
+  loadText();
+} else {
+  document.getElementById('content').innerHTML =
+    '<div class="error">❌ 缺少 path 參數<br><a href="/guwen/" style="color:#4a9eff;">返回古籍首頁</a></div>';
+}
+</script>
+</body>
+</html>
