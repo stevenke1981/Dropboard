@@ -7,5 +7,6 @@ uploads/
 ocr/png/
 server.log
 古籍/
+古籍-pdf/
 .DS_Store
 Thumbs.db
